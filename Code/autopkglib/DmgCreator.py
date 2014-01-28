@@ -19,6 +19,7 @@ import os
 import subprocess
 import shutil
 import tempfile
+from platform import uname
 
 from autopkglib import Processor, ProcessorError
 
@@ -47,6 +48,13 @@ class DmgCreator(Processor):
         # Remove existing dmg if it exists.
         if os.path.exists(self.env['dmg_path']):
             os.unlink(self.env['dmg_path'])
+
+        # work around odd 10.6 zlib bug. see issue #70.
+        os_major = uname()[2].split('.')[0]
+        if os_major == '10':
+            zlib_level = 3
+        else:
+            zlib_level = 5
         
         # Call hdiutil.
         try:
@@ -56,7 +64,7 @@ class DmgCreator(Processor):
                                   "-format",
                                   "UDZO",
                                   "-imagekey",
-                                  "zlib-level=5",
+                                  "zlib-level=%d" % zlib_level,
                                   "-srcfolder", self.env['dmg_root'],
                                   self.env['dmg_path']),
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
